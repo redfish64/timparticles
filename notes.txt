@@ -1,0 +1,25 @@
+We can use pointsize to create a bitmap where the fragment
+shader can draw in. But point boundaries may overlap, so it needs to run
+for every point that overlaps a particular coordinate
+
+maybe a particle effects shader example will help us.
+
+---
+
+1920x1080 1.9 million pixels
+
+8 px radius for particle field = 1.9 / 16 / 16 = 7400 particles
+
+but who knows??
+
+---
+
+we will create quads, one per particle, and use those to create a
+field of forces. Then we'll move each particle within the field,
+and redraw. 
+
+The velocity, type, and position of each particle will each be 
+stored in a corresponding texture.
+
+We will access it by looking at pixel + 0.5 for each coordinate.
+
