@@ -1,69 +1,47 @@
-var wgl;
-var canvas;
-var drawPointProgram;
+var TimParticles = (function () {
 
-function main() {
-    // Retrieve <canvas> element
-    canvas = document.getElementById('canvas');
-
-    wgl = new WrappedGL(canvas);
-
-    wgl.createDrawState();
-
-    wgl.createProgramsFromFiles(
-	{
-            drawPointProgram: {
-		vertexShader: 'shaders/vshader.vert',
-		fragmentShader: 'shaders/fshader.frag'
-            }
-	},
-	(function (programs) {
-	    drawPointProgram = programs.drawPointProgram;
-	    onLoaded();
-	})
-    );
-    }
-
-function onLoaded()
-{
-    var vertices = [];
-    
-    for(var x = -1; x < 1; x += .5)
+    function TimParticles(desiredParticleCount)
     {
-	for(var y = -1; y < 1; y += .5)
+	this.canvas = document.getElementById('canvas');
+	
+	this.wgl = new WrappedGL(canvas);
+	
+	this.simulator = new Simulator(wgl,onSimLoaded);
+
+	this.desiredParticleCount = desiredParticleCount;
+    }
+    
+    function randomPoint = function (min,max) { 
+	return min + Math.random() * (max - min);
+    }
+
+    function createRandomParticlePositions(maxX, maxY)
+    {
+	var particlePositions = [];
+	
+	for(var p = 0; p < particleCount; p++)
 	{
-	    vertices.push(x);
-	    vertices.push(y);
+	    particlePositions.push(randomPoint(0,maxX));
+	    particlePositions.push(randomPoint(0,maxY));
 	}
+
+	return particlePositions;
     }
 
-    var buf = wgl.createBuffer();
-    wgl.bufferData(buf, wgl.ARRAY_BUFFER, new Float32Array(vertices), wgl.STATIC_DRAW);
+    function onSimLoaded()
+    {
+        var particlesWidth = 512; //we fix particlesWidth
+        var particlesHeight = Math.ceil(this.desiredParticleCount / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
 
-    var drawState = wgl.createDrawState().useProgram(drawPointProgram);
-    
-    // Get the storage location of a_Position
-    var a_Position = drawPointProgram.getAttribLocation('a_Position');
-    if (a_Position < 0) {
-	console.log('Failed to get the storage location of a_Position');
-	return;
+        var particleCount = particlesWidth * particlesHeight;
+
+	var particlePositions = createRandomParticlePositions(canvas.width,
+							     canvas.height);
+	this.simulator.reset(particlePositions, particlesWidth,
+			     particlesHeight, canvas.width, canvas.height);
     }
-
-    drawState.vertexAttribPointer(buf, a_Position, 2, wgl.FLOAT,
-				  wgl.FALSE, 0, 0);
-
-    drawState.uniform1f('u_Width', canvas.width);
-    drawState.uniform1f('u_Height', canvas.height);
-
-    // Specify the color for clearing <canvas>
-    var clearState = wgl.createClearState();
-
-    clearState.clearColor(0.0, 0.0, 0.0, 1.0);
     
-    // Clear <canvas>
-    wgl.clear(clearState, wgl.COLOR_BUFFER_BIT);
-    
-    // Draw a point
-    wgl.drawArrays(drawState, wgl.POINTS, 0, vertices.length/2);
-//    wgl.drawElements(drawState, wgl.POINTS, 1, wgl.UNSIGNED_SHORT, 0);
 }
+
+
+

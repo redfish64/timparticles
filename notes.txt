@@ -23,3 +23,12 @@ stored in a corresponding texture.
 
 We will access it by looking at pixel + 0.5 for each coordinate.
 
+---
+
+I think we may be able to use point sprites, if we pass a "varying"
+between the vertex and fragment shaders.
+This "varying" will represent the center of the point and allow
+us to choose an appropriate color for the fragment.
+
+According to my tests in the experimental branch, this does work.
+
