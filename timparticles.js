@@ -1,21 +1,25 @@
+'use strict'
+
 var TimParticles = (function () {
 
     function TimParticles(desiredParticleCount)
     {
+	this.desiredParticleCount = desiredParticleCount;
+
 	this.canvas = document.getElementById('canvas');
 	
 	this.wgl = new WrappedGL(canvas);
 	
-	this.simulator = new Simulator(wgl,onSimLoaded);
+	this.simulatorRenderer = new SimulatorRenderer
+	(this.canvas,this.wgl, onSimLoaded.bind(this));
 
-	this.desiredParticleCount = desiredParticleCount;
     }
     
-    function randomPoint = function (min,max) { 
+    function randomPoint(min,max) { 
 	return min + Math.random() * (max - min);
     }
 
-    function createRandomParticlePositions(maxX, maxY)
+    function createRandomParticlePositions(particleCount,maxX, maxY)
     {
 	var particlePositions = [];
 	
@@ -35,13 +39,33 @@ var TimParticles = (function () {
 
         var particleCount = particlesWidth * particlesHeight;
 
-	var particlePositions = createRandomParticlePositions(canvas.width,
+	var particlePositions = createRandomParticlePositions(particleCount, canvas.width,
 							     canvas.height);
-	this.simulator.reset(particlePositions, particlesWidth,
-			     particlesHeight, canvas.width, canvas.height);
+	this.simulatorRenderer.reset(particlePositions, particlesWidth,
+				     particlesHeight);
+
+        ////////////////////////////////////////////////////
+        // start the update loop
+	
+        var lastTime = 0;
+        var update = (function (currentTime) {
+            var deltaTime = currentTime - lastTime || 0;
+            lastTime = currentTime;
+	    
+            this.update(deltaTime);
+	    
+            requestAnimationFrame(update);
+        }).bind(this);
+        update();
     }
+
+    TimParticles.prototype.update = function () {
+        this.simulatorRenderer.update(this.timeStep);
+    }
+
     
-}
+    return TimParticles;
+})();
 
 
 

@@ -32,3 +32,14 @@ us to choose an appropriate color for the fragment.
 
 According to my tests in the experimental branch, this does work.
 
+---
+
+I think that negative values may not be a problem. I did a test
+of negative values, but since the output was to the screen, I
+think it clamps it to >=0.
+
+However, in fluid, I'm pretty sure it's using negative values (a
+velocity texture, and a random texture that uses cos/sin of angles
+from 0 - 360 degrees). So I think whether negative numbers are
+translated to the output depends on the type of output. If we use a
+signed float texture, we should be ok.

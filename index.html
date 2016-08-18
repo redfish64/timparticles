@@ -5,20 +5,36 @@
     <title>Tim Particles</title>
   </head>
 
-  <body onload="main()">
-    <canvas id="canvas" width="800" height="500"></canvas>
+  <body>
+    <div id="placeholder"></div>
     <script src="wrappedgl.js"></script>
     <script src="utilities.js"></script>
     <script src="camera.js"></script>
     <script src="simulator.js"></script>
+    <script src="renderer.js"></script>
+    <script src="simulatorrenderer.js"></script>
     <script src="timparticles.js"></script>
-    
+    <script type="text/template" id="main">
+    <canvas id="canvas" width="800" height="500"></canvas>
+    </script>
+
+    <script type="text/template" id="no-support">
+    <div id="container">
+    <div id="error"></div>
+    </div>
+    </script>
+
+
     <script>
-    WrappedGL.checkWebGLSupportWithExtensions(
+      var particleTextureCoordinates = new Float32Array(1024);
+      WrappedGL.checkWebGLSupportWithExtensions(
 	['ANGLE_instanced_arrays','WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
 	function () { //we have webgl
 	    document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
-	    var fluidBox = new FluidParticles();
+
+	    //this starts the process
+	    var timBox = new TimParticles(10);
+
         }, function (hasWebGL, unsupportedExtensions) {
             document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;
             if (!hasWebGL) { //webgl not supported
