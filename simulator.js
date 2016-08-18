@@ -53,7 +53,7 @@ var Simulator = (function () {
     Simulator.prototype.fillParticleVertexBuffer = function()
     {
 	var size = this.particlesWidth * this.particlesHeight * 2;
-	console.log("size is %d", size);
+	//console.log("size is %d", size);
         var particleTextureCoordinates = new Float32Array(size);
         
 	for (var y = 0; y < this.particlesHeight; ++y) {
@@ -77,8 +77,8 @@ var Simulator = (function () {
         var particlePositionsData = new Float32Array(this.particlesWidth * this.particlesHeight * 4);
 
         for (var i = 0; i < this.particlesWidth * this.particlesHeight; ++i) {
-            particlePositionsData[i * 4] = particlePositions[i][0];
-            particlePositionsData[i * 4 + 1] = particlePositions[i][1];
+            particlePositionsData[i * 4] = particlePositions[i*2];
+            particlePositionsData[i * 4 + 1] = particlePositions[i*2+1];
             particlePositionsData[i * 4 + 2] = 0.0;
             particlePositionsData[i * 4 + 3] = 0.0;
         }
@@ -96,17 +96,18 @@ var Simulator = (function () {
     
     //particle positions are the location of the particles within the 
     //field
-
+    //
     //particlesWidth and particlesHeight are the index positions into
-    //the texture destinations for particle data. Since we have
-    //to store particles as a texture and textures have width and height
-    //we have to choose a particular size. It has nothing to do with the
-    //location of the particles in the field, and is simply used to help
-    //index where the particle data is within the texture.
-
+    //the texture destinations for particle data. Since we have to
+    //store particles as a texture and textures have width and height
+    //we have to choose a particular width and height. It has nothing
+    //to do with the location of the particles in the field, and is
+    //simply used to help index where the particle data is within the
+    //texture.
+    //
     //fieldWidth and fieldHeight are pixel destinations for field generated
     //by particles. All indexes in the field are integers
-
+    //
     Simulator.prototype.reset = function(particlePositions, particlesWidth, 
 					 particlesHeight, 
 					 fieldWidth, fieldHeight)
@@ -123,30 +124,11 @@ var Simulator = (function () {
 	this.resetParticlePositionTexture(particlePositions);
 
 	this.wgl.rebuildTexture(this.fieldTexture, this.wgl.RGBA, this.simulationNumberType, this.fieldWidth, this.fieldHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.LINEAR, this.wgl.LINEAR);
-
-	
-    
-	// // Get the storage location of a_Position
-	// var a_Position = drawPointProgram.getAttribLocation('a_Position');
-	// if (a_Position < 0) {
-	//     console.log('Failed to get the storage location of a_Position');
-	//     return;
-	// }
-
-	// drawState.vertexAttribPointer(buf, a_Position, 2, wgl.FLOAT,
-	// 			      wgl.FALSE, 0, 0);
-	
-	// drawState.uniform1f('u_Width', canvas.width);
-	// drawState.uniform1f('u_Height', canvas.height);
-	
-	// // Draw a point
-	// wgl.drawArrays(drawState, wgl.POINTS, 0, particlePositions.length/2);
-	// //    wgl.drawElements(drawState, wgl.POINTS, 1, wgl.UNSIGNED_SHORT, 0);
     }
 
     Simulator.prototype.simulate = function(timeStep)
     {
-        if (this.timeStep === 0.0) return;
+        if (this.timeStep == 0.0) return;
 	
         this.frameNumber += 1;
         var wgl = this.wgl;
@@ -154,13 +136,16 @@ var Simulator = (function () {
         var buildFieldDrawState = wgl.createDrawState()
             .bindFramebuffer(this.simulationFramebuffer)
             .viewport(0, 0, this.fieldWidth, this.fieldHeight)
+	//this next command loads the vertexes as an attribute into
+	//the vert shader as the first attribute, which is
+	// 'a_textureCoordinates' (as defined in buildfield.vert
             .vertexAttribPointer(this.particleVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
 
             .useProgram(this.buildFieldProgram)
             .uniform2f('u_fieldSize', this.fieldWidth, this.fieldHeight)
             .uniformTexture('u_particleTexture', 0, wgl.TEXTURE_2D, this.particleTexture);
-	console.log("TIMHACK turned off blend");
-	console.log("TIMHACK shaders are messed up");
+	//console.log("TIMHACK turned off blend");
+	//console.log("TIMHACK shaders are messed up");
 //            .enable(wgl.BLEND)
 //            .blendEquation(wgl.FUNC_ADD)
 //            .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE);

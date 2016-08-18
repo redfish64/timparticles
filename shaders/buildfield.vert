@@ -7,10 +7,12 @@ uniform sampler2D u_particleTexture;
 varying vec3 v_position;
 
 void main () {
-    vec3 position = texture2D(u_particleTexture, a_textureCoordinates).rgb;
-    //gl_Position = vec4(position,1.0);
-    gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
-    //v_position = position;
-    v_position = vec3(0.1,0.1,0.1);
-    gl_PointSize = 10.0;
+  vec4 position = texture2D(u_particleTexture, a_textureCoordinates)/1000.;
+  //position = normalize(position);
+  position[3]=1.;
+  gl_Position = position;
+  //gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+  //v_position = position;
+  v_position = vec3(0.1,0.1,0.1);
+  gl_PointSize = 10.0;
 }
