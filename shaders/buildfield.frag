@@ -1,13 +1,12 @@
 precision mediump float;
 
-varying vec3 v_position; //already in the grid coordinate system
-
 void main () {
-  //vec3 distance = gl_FragCoord.xyz - v_position;
-  //float dist_sqr = dot(distance, distance);
+  vec2 dist = (gl_PointCoord.xy - 0.5)*2.;
+  float dist_sqr = dot(dist,dist);
 
-  //dist_sqr = max(dist_sqr,2.);
+  dist_sqr = max(dist_sqr,0.001);
 
-  //gl_FragColor = vec4(normalize(distance)/dist_sqr*255.,1.);
-  gl_FragColor = vec4(1.,1.,0.,1.);
+  gl_FragColor = vec4(gl_PointCoord,0.,1.);
+  //gl_FragColor = vec4(1./dist_sqr,1./dist_sqr,0.,1.);
+  //gl_FragColor = vec4(1.,1.,0.,1.);
 }

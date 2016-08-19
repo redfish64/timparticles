@@ -135,10 +135,16 @@ var Simulator = (function () {
 	
         var buildFieldDrawState = wgl.createDrawState()
             .bindFramebuffer(this.simulationFramebuffer)
-            .viewport(0, 0, this.fieldWidth, this.fieldHeight)
-	//this next command loads the vertexes as an attribute into
-	//the vert shader as the first attribute, which is
-	// 'a_textureCoordinates' (as defined in buildfield.vert
+	//co: it seems the viewport is set to automatically fill the
+	//texture. Note that from the shader perspective the field
+	//will be from -1 to 1 in both directions 
+	//
+	//.viewport(0, 0, this.fieldWidth, this.fieldHeight) 
+
+	//this next command loads
+	//the vertexes as an attribute into the vert shader as the
+	//first attribute, which is 'a_textureCoordinates' (as defined
+	//in buildfield.vert
             .vertexAttribPointer(this.particleVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
 
             .useProgram(this.buildFieldProgram)
