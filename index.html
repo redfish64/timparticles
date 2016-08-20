@@ -26,14 +26,13 @@
 
 
     <script>
-      var particleTextureCoordinates = new Float32Array(1024);
       WrappedGL.checkWebGLSupportWithExtensions(
 	['ANGLE_instanced_arrays','WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
 	function () { //we have webgl
 	    document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
 
 	    //this starts the process
-	    var timBox = new TimParticles(1000);
+	    var timBox = new TimParticles(1);
 
         }, function (hasWebGL, unsupportedExtensions) {
             document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;

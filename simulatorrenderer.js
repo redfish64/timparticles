@@ -40,10 +40,12 @@ var SimulatorRenderer = (function () {
 
     SimulatorRenderer.prototype.reset = 
 	function (particlePositions, 
+		  particleVelocities,
 		  particlesWidth, 
 		  particlesHeight)
     {
-	this.simulator.reset(particlePositions, particlesWidth,
+	this.simulator.reset(particlePositions, particleVelocities,
+			     particlesWidth,
 			     particlesHeight, 
 			     this.canvas.width, this.canvas.height);
         this.renderer.reset();

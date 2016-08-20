@@ -2,6 +2,9 @@
 
 var TimParticles = (function () {
 
+    //velocity is in field units per millisecond
+    var MAX_VELOCITY = 0.05;
+
     function TimParticles(desiredParticleCount)
     {
 	this.desiredParticleCount = desiredParticleCount;
@@ -32,16 +35,32 @@ var TimParticles = (function () {
 	return particlePositions;
     }
 
+    //note, velocity may slightly exceed maxVelocity by around 30% or so
+    function createRandomParticleVelocities(particleCount,maxVelocity)
+    {
+	var particleVelocities = [];
+	
+	for(var p = 0; p < particleCount; p++)
+	{
+	    particleVelocities.push(randomPoint(-maxVelocity,maxVelocity));
+	    particleVelocities.push(randomPoint(-maxVelocity,maxVelocity));
+	}
+
+	return particleVelocities;
+    }
+
     function onSimLoaded()
     {
-        var particlesWidth = 512; //we fix particlesWidth
+        var particlesWidth = 4;//TODO 1.5: for testing we make it really small 512; //we fix particlesWidth
         var particlesHeight = Math.ceil(this.desiredParticleCount / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
 
         var particleCount = particlesWidth * particlesHeight;
 
 	var particlePositions = createRandomParticlePositions(particleCount, canvas.width,
 							     canvas.height);
-	this.simulatorRenderer.reset(particlePositions, particlesWidth,
+	var particleVelocities = createRandomParticleVelocities(particleCount, MAX_VELOCITY);
+	this.simulatorRenderer.reset(particlePositions, particleVelocities, 
+				     particlesWidth,
 				     particlesHeight);
 
         ////////////////////////////////////////////////////
