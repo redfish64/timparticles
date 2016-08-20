@@ -18,22 +18,11 @@ var Renderer = (function () {
 		1.0, 1.0
 	    ]), wgl.STATIC_DRAW);
 
-        this.textVertexBuffer = wgl.createBuffer();
-        wgl.bufferData(this.textVertexBuffer, wgl.ARRAY_BUFFER, new Float32Array(
-	    [
-		0.0, 0.0, 
-		0.0, 1.0, 
-		1.0, 0.0, 
-		1.0, 1.0
-	    ]), wgl.STATIC_DRAW);
-
-
         wgl.createProgramsFromFiles({
             renderFieldProgram: {
-                vertexShader: 'shaders/renderfield.vert',
+                vertexShader: 'shaders/fullscreen.vert',
                 fragmentShader: 'shaders/renderfield.frag',
-                attributeLocations: { 'a_Position': 0,
-				      'a_TexCoord': 1}
+                attributeLocations: { 'a_position': 0}
             }
         }, (function (programs) {
             for (var programName in programs) {
@@ -61,10 +50,7 @@ var Renderer = (function () {
             .viewport(0, 0, this.canvas.width, this.canvas.height)
             .useProgram(this.renderFieldProgram)
 
-	    //PERF: for gl efficiency, may want to conver this to a single
-	    //buffer
             .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
-            .vertexAttribPointer(this.textVertexBuffer, 1, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
 	    .uniform1f('u_time', time)
             .uniform2f('u_fieldSize', this.fieldWidth, this.fieldHeight)
             .uniformTexture('u_fieldTexture', 0, wgl.TEXTURE_2D, simulator.fieldTexture);

@@ -21,25 +21,12 @@ var Simulator = (function () {
 		1.0, 1.0
 	    ]), wgl.STATIC_DRAW);
 
-        this.textVertexBuffer = wgl.createBuffer();
-        wgl.bufferData(this.textVertexBuffer, wgl.ARRAY_BUFFER, new Float32Array(
-	    [
-		0.0, 0.0, 
-		0.0, 1.0, 
-		1.0, 0.0, 
-		1.0, 1.0
-	    ]), wgl.STATIC_DRAW);
-
-
 	//this stores the index into the textures for each particle
 	//(the texture stores the particle data, such as position, etc..)
         this.particleVertexBuffer = wgl.createBuffer();
 
-	this.positionsTexture = wgl.createTexture();
-	this.positionsTextureTemp = wgl.createTexture();
-
-	this.velocitiesTexture = wgl.createTexture();
-	this.velocitiesTextureTemp = wgl.createTexture();
+	this.particleTexture = wgl.createTexture();
+	this.particleTextureTemp = wgl.createTexture();
 
 	//this is the output where we store the resulting vector field
         this.fieldTexture = wgl.createTexture();
@@ -53,13 +40,15 @@ var Simulator = (function () {
 
 	wgl.createProgramsFromFiles(
 	    {
-		updatePositionTextureProgram: {
-		    vertexShader: 'shaders/updatepos.vert',
-		    fragmentShader: 'shaders/updatepos.frag'
+		updateParticleTextureProgram: {
+		    vertexShader: 'shaders/fullscreen.vert',
+		    fragmentShader: 'shaders/updateparticles.frag',
+                    attributeLocations: { 'a_position': 0}
 		},
 		buildFieldProgram: {
 		    vertexShader: 'shaders/buildfield.vert',
-		    fragmentShader: 'shaders/buildfield.frag'
+		    fragmentShader: 'shaders/buildfield.frag',
+                    attributeLocations: { 'a_textureCoordinates': 0}
 		}
 	    },
 	    (function (programs) {
@@ -95,14 +84,17 @@ var Simulator = (function () {
 
     }
 
-    function createFloat32ArrayForData(data)
+    function createParticleData(positions, velocities)
     {
 
 	var out = 
-	    new Float32Array(data.length);
+	    new Float32Array(positions.length * 2);
 
-        for (var i = 0; i < data.length; i++) {
-            out[i] = data[i];
+        for (var i = 0; i < positions.length/2; i++) {
+            out[i*4] = positions[i*2];
+            out[i*4+1] = positions[i*2+1];
+            out[i*4+2] = velocities[i*2];
+            out[i*4+3] = velocities[i*2+1];
         }
 
 	return out;
@@ -121,7 +113,7 @@ var Simulator = (function () {
     {
 	// texture data is in a rgba format. So we create an array
 	// of floats to handle this.
-        var positionsData = createFloat32ArrayForData(positions);
+        var particlesData = createParticleData(positions, velocities);
 
 	//This will produce the following error. It also appears in fluid
 	//which this is based on, so we'll just ignore it
@@ -130,17 +122,9 @@ var Simulator = (function () {
 	//error appears
 	//
 	//Error: WebGL: A texture is going to be rendered as if it were black, as per the OpenGL ES 2.0.24 spec section 3.8.2, because it is a 2D texture, with a minification filter requiring a mipmap, and is not mipmap complete (as defined in section 3.7.10).1 wrappedgl.js:776:8
-	//
-	// PERF: we are wasting space here with RGBA to store a two dimensional
-	// xy coordinate. We could consolidate positions and velocities in the
-	// same texture, maybe
-	this.wgl.rebuildTexture(this.positionsTexture, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, positionsData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
-	this.wgl.rebuildTexture(this.positionsTextureTemp, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
-
-        var velocitiesData = createFloat32ArrayForData(velocities);
-	this.wgl.rebuildTexture(this.velocitiesTexture, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, velocitiesData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
-	this.wgl.rebuildTexture(this.velocitiesTextureTemp, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
-
+	this.wgl.rebuildTexture(this.particleTexture, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, particlesData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
+	//particleTexture and particleTextureTemp are swapped every frame
+	this.wgl.rebuildTexture(this.particleTextureTemp, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
 
 	this.wgl.rebuildTexture(this.fieldTexture, this.wgl.RGBA, this.simulationNumberType, this.fieldWidth, this.fieldHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
     }
@@ -200,7 +184,8 @@ var Simulator = (function () {
 
             .useProgram(this.buildFieldProgram)
             .uniform2f('u_fieldSize', this.fieldWidth, this.fieldHeight)
-            .uniformTexture('u_positionsTexture', 0, wgl.TEXTURE_2D, this.positionsTexture)
+            .uniformTexture('u_particleTexture', 0, wgl.TEXTURE_2D, 
+			    this.particleTexture)
             .enable(wgl.BLEND)
             .blendEquation(wgl.FUNC_ADD)
             .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE);
@@ -209,11 +194,11 @@ var Simulator = (function () {
 		       this.particleCount);
     }
     
-    Simulator.prototype.updatePositionTexture = function(timeStep)
+    Simulator.prototype.updateParticlesTexture = function(timeStep)
     {
         var wgl = this.wgl;
 	
-        wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.positionsTextureTemp, 0);
+        wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.particleTextureTemp, 0);
 
 	//co: we shouldn't have to clear it, I think????	
         // wgl.clear(
@@ -227,18 +212,19 @@ var Simulator = (function () {
 	    //PERF: for gl efficiency, may want to conver this to a single
 	    //buffer
             .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
-            .vertexAttribPointer(this.textVertexBuffer, 1, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
-            .useProgram(this.updatePositionTextureProgram)
-            .uniformTexture('u_positionsTexture', 0, wgl.TEXTURE_2D, this.positionsTexture)
-	    .uniformTexture('u_velocitiesTexture', 0, wgl.TEXTURE_2D, this.velocitiesTexture)
+            .useProgram(this.updateParticleTextureProgram)
+            .uniformTexture('u_particleTexture', 0, wgl.TEXTURE_2D, this.particleTexture)
+            .uniformTexture('u_fieldTexture', 1, wgl.TEXTURE_2D, this.fieldTexture)
 	    .uniform1f('u_timeStep', timeStep)
+            .uniform2f('u_fieldSize', this.fieldWidth, this.fieldHeight)
 	;
 	
         wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
 
-	var t = this.positionsTexture;
-	this.positionsTexture = this.positionsTextureTemp;
-	this.positionsTextureTemp = t;
+	var t = this.particleTexture;
+	this.particleTexture = this.particleTextureTemp;
+	this.particleTextureTemp = t;
+
     }
     
     Simulator.prototype.simulate = function(timeStep)
@@ -248,8 +234,7 @@ var Simulator = (function () {
         this.frameNumber += 1;
 
 	this.buildFieldTexture();
-	//this.updateVelocityTexture();
-	this.updatePositionTexture(timeStep);
+	this.updateParticlesTexture(timeStep);
     }
 
     return Simulator;

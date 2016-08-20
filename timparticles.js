@@ -31,6 +31,15 @@ var TimParticles = (function () {
 	    particlePositions.push(randomPoint(0,maxX));
 	    particlePositions.push(randomPoint(0,maxY));
 	}
+	
+	// //more orderly particles
+	// var particlePositions = [];
+	// for(var p = 0; p < particleCount; p++)
+	// {
+	//     particlePositions.push( (p % 10)/10. * maxX);
+	//     particlePositions.push( ((p- (p%10)) / 10)/10. * maxY);
+	// }
+
 
 	return particlePositions;
     }
@@ -49,9 +58,9 @@ var TimParticles = (function () {
 	return particleVelocities;
     }
 
-    function onSimLoaded()
+    function resetSimulation()
     {
-        var particlesWidth = 4;//TODO 1.5: for testing we make it really small 512; //we fix particlesWidth
+        var particlesWidth = 512;
         var particlesHeight = Math.ceil(this.desiredParticleCount / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
 
         var particleCount = particlesWidth * particlesHeight;
@@ -63,10 +72,18 @@ var TimParticles = (function () {
 				     particlesWidth,
 				     particlesHeight);
 
+    }
+
+    function onSimLoaded()
+    {
+	resetSimulation.call(this);
+
         ////////////////////////////////////////////////////
         // start the update loop
 	
         var lastTime = 0;
+
+	var i = 0;
         var update = (function (currentTime) {
             var deltaTime = currentTime - lastTime || 0;
             lastTime = currentTime;
@@ -74,6 +91,9 @@ var TimParticles = (function () {
             this.update(deltaTime);
 	    
             requestAnimationFrame(update);
+
+	    //if(++i % 50 == 0)
+//		resetSimulation.call(this);
         }).bind(this);
         update();
     }
