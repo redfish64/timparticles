@@ -78,8 +78,8 @@ var TimParticles = (function () {
         update();
     }
 
-    TimParticles.prototype.update = function () {
-        this.simulatorRenderer.update(this.timeStep);
+    TimParticles.prototype.update = function (deltaTime) {
+        this.simulatorRenderer.update(deltaTime);
     }
 
     

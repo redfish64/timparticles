@@ -9,16 +9,37 @@ var Simulator = (function () {
 	this.wgl = wgl;
 
         this.simulationFramebuffer = wgl.createFramebuffer();
+	
+	//this is used to draw the whole input buffer in the frag shader
+	//useful for moving particles and updating their velocities
+        this.quadVertexBuffer = wgl.createBuffer();
+        wgl.bufferData(this.quadVertexBuffer, wgl.ARRAY_BUFFER, new Float32Array(
+	    [
+		-1.0, -1.0, 
+		-1.0, 1.0, 
+		1.0, -1.0, 
+		1.0, 1.0
+	    ]), wgl.STATIC_DRAW);
+
+        this.textVertexBuffer = wgl.createBuffer();
+        wgl.bufferData(this.textVertexBuffer, wgl.ARRAY_BUFFER, new Float32Array(
+	    [
+		0.0, 0.0, 
+		0.0, 1.0, 
+		1.0, 0.0, 
+		1.0, 1.0
+	    ]), wgl.STATIC_DRAW);
+
 
 	//this stores the index into the textures for each particle
 	//(the texture stores the particle data, such as position, etc..)
         this.particleVertexBuffer = wgl.createBuffer();
 
-	this.particlePositionsTexture = wgl.createTexture();
-	this.particlePositionsTempTexture = wgl.createTexture();
+	this.positionsTexture = wgl.createTexture();
+	this.positionsTextureTemp = wgl.createTexture();
 
-	this.particleVelocitiesTexture = wgl.createTexture();
-	this.particleVelocitiesTempTexture = wgl.createTexture();
+	this.velocitiesTexture = wgl.createTexture();
+	this.velocitiesTextureTemp = wgl.createTexture();
 
 	//this is the output where we store the resulting vector field
         this.fieldTexture = wgl.createTexture();
@@ -32,10 +53,10 @@ var Simulator = (function () {
 
 	wgl.createProgramsFromFiles(
 	    {
-		// moveParticlesProgram: {
-		//     vertexShader: 'shaders/movepart.vert',
-		//     fragmentShader: 'shaders/movepart.frag'
-		// },
+		updatePositionTextureProgram: {
+		    vertexShader: 'shaders/updatepos.vert',
+		    fragmentShader: 'shaders/updatepos.frag'
+		},
 		buildFieldProgram: {
 		    vertexShader: 'shaders/buildfield.vert',
 		    fragmentShader: 'shaders/buildfield.frag'
@@ -88,13 +109,19 @@ var Simulator = (function () {
     }
 
 
+    function swap (object, a, b) {
+        var temp = object[a];
+        object[a] = object[b];
+        object[b] = temp;
+    }
+
     //fills and initializes textures needed to process particles
     Simulator.prototype.resetTextures = 
-	function(particlePositions, particleVelocities)
+	function(positions, velocities)
     {
 	// texture data is in a rgba format. So we create an array
 	// of floats to handle this.
-        var particlePositionsData = createFloat32ArrayForData(particlePositions);
+        var positionsData = createFloat32ArrayForData(positions);
 
 	//This will produce the following error. It also appears in fluid
 	//which this is based on, so we'll just ignore it
@@ -104,13 +131,15 @@ var Simulator = (function () {
 	//
 	//Error: WebGL: A texture is going to be rendered as if it were black, as per the OpenGL ES 2.0.24 spec section 3.8.2, because it is a 2D texture, with a minification filter requiring a mipmap, and is not mipmap complete (as defined in section 3.7.10).1 wrappedgl.js:776:8
 	//
-	// We use LA type so we get two values per texture coordinate (X and Y)
-	this.wgl.rebuildTexture(this.particlePositionsTexture, this.wgl.LUMINANCE_ALPHA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, particlePositionsData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
-	// this.wgl.rebuildTexture(this.particlePositionsTempTexture, this.wgl.LUMINANCE_ALPHA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
+	// PERF: we are wasting space here with RGBA to store a two dimensional
+	// xy coordinate. We could consolidate positions and velocities in the
+	// same texture, maybe
+	this.wgl.rebuildTexture(this.positionsTexture, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, positionsData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
+	this.wgl.rebuildTexture(this.positionsTextureTemp, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
 
-        // var particleVelocitiesData = createFloat32ArrayForData(particleVelocities);
-	// this.wgl.rebuildTexture(this.particleVelocitiesTexture, this.wgl.LUMINANCE_ALPHA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, particleVelocitiesData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
-	// this.wgl.rebuildTexture(this.particleVelocitiesTempTexture, this.wgl.LUMINANCE_ALPHA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
+        var velocitiesData = createFloat32ArrayForData(velocities);
+	this.wgl.rebuildTexture(this.velocitiesTexture, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, velocitiesData, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
+	this.wgl.rebuildTexture(this.velocitiesTextureTemp, this.wgl.RGBA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
 
 
 	this.wgl.rebuildTexture(this.fieldTexture, this.wgl.RGBA, this.simulationNumberType, this.fieldWidth, this.fieldHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
@@ -130,8 +159,8 @@ var Simulator = (function () {
     //fieldWidth and fieldHeight are pixel destinations for field generated
     //by particles. All indexes in the field are integers
     //
-    Simulator.prototype.reset = function(particlePositions, 
-					 particleVelocities,
+    Simulator.prototype.reset = function(positions, 
+					 velocities,
 					 particlesWidth, 
 					 particlesHeight, 
 					 fieldWidth, fieldHeight)
@@ -145,7 +174,7 @@ var Simulator = (function () {
 
 	this.fillParticleVertexBuffer();
 
-	this.resetTextures(particlePositions, particleVelocities);
+	this.resetTextures(positions, velocities);
 
     }
 
@@ -159,13 +188,9 @@ var Simulator = (function () {
             wgl.createClearState().bindFramebuffer(this.simulationFramebuffer).clearColor(0, 0, 0, 0),
             wgl.COLOR_BUFFER_BIT);
 
-        var buildFieldDrawState = wgl.createDrawState()
+        var drawState = wgl.createDrawState()
             .bindFramebuffer(this.simulationFramebuffer)
-	//co: it seems the viewport is set to automatically fill the
-	//output texture. Note that from the shader perspective the field
-	//will be from -1 to 1 in both directions 
-	//
-	.viewport(0, 0, this.fieldWidth, this.fieldHeight) 
+	    .viewport(0, 0, this.fieldWidth, this.fieldHeight) 
 
 	//this next command designates
 	//the vertexes as an attribute into the vert shader as the
@@ -175,23 +200,56 @@ var Simulator = (function () {
 
             .useProgram(this.buildFieldProgram)
             .uniform2f('u_fieldSize', this.fieldWidth, this.fieldHeight)
-            .uniformTexture('u_particleTexture', 0, wgl.TEXTURE_2D, this.particlePositionsTexture)
+            .uniformTexture('u_positionsTexture', 0, wgl.TEXTURE_2D, this.positionsTexture)
             .enable(wgl.BLEND)
             .blendEquation(wgl.FUNC_ADD)
             .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE);
 	
-	wgl.drawArrays(buildFieldDrawState, wgl.GL_POINTS, 0, 
+	wgl.drawArrays(drawState, wgl.GL_POINTS, 0, 
 		       this.particleCount);
+    }
+    
+    Simulator.prototype.updatePositionTexture = function(timeStep)
+    {
+        var wgl = this.wgl;
+	
+        wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.positionsTextureTemp, 0);
+
+	//co: we shouldn't have to clear it, I think????	
+        // wgl.clear(
+        //     wgl.createClearState().bindFramebuffer(this.simulationFramebuffer).clearColor(0, 0, 0, 0),
+        //     wgl.COLOR_BUFFER_BIT);
+
+        var drawState = wgl.createDrawState()
+            .bindFramebuffer(this.simulationFramebuffer)
+	//viewport set to the size of the output texture
+	    .viewport(0, 0, this.particlesWidth, this.particlesHeight) 
+	    //PERF: for gl efficiency, may want to conver this to a single
+	    //buffer
+            .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
+            .vertexAttribPointer(this.textVertexBuffer, 1, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
+            .useProgram(this.updatePositionTextureProgram)
+            .uniformTexture('u_positionsTexture', 0, wgl.TEXTURE_2D, this.positionsTexture)
+	    .uniformTexture('u_velocitiesTexture', 0, wgl.TEXTURE_2D, this.velocitiesTexture)
+	    .uniform1f('u_timeStep', timeStep)
+	;
+	
+        wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
+
+	var t = this.positionsTexture;
+	this.positionsTexture = this.positionsTextureTemp;
+	this.positionsTextureTemp = t;
     }
     
     Simulator.prototype.simulate = function(timeStep)
     {
-        if (this.timeStep == 0.0) return;
+        if (timeStep == 0.0) return;
 	
         this.frameNumber += 1;
 
 	this.buildFieldTexture();
-	
+	//this.updateVelocityTexture();
+	this.updatePositionTexture(timeStep);
     }
 
     return Simulator;
