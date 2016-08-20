@@ -113,7 +113,7 @@ var Simulator = (function () {
 	// this.wgl.rebuildTexture(this.particleVelocitiesTempTexture, this.wgl.LUMINANCE_ALPHA, this.wgl.FLOAT, this.particlesWidth, this.particlesHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
 
 
-	this.wgl.rebuildTexture(this.fieldTexture, this.wgl.RGBA, this.simulationNumberType, this.fieldWidth, this.fieldHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.LINEAR, this.wgl.LINEAR);
+	this.wgl.rebuildTexture(this.fieldTexture, this.wgl.RGBA, this.simulationNumberType, this.fieldWidth, this.fieldHeight, null, this.wgl.CLAMP_TO_EDGE, this.wgl.CLAMP_TO_EDGE, this.wgl.NEAREST, this.wgl.NEAREST);
     }
     
     //particle positions are the location of the particles within the 
@@ -153,13 +153,19 @@ var Simulator = (function () {
     {
         var wgl = this.wgl;
 	
+        wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.fieldTexture, 0);
+	
+        wgl.clear(
+            wgl.createClearState().bindFramebuffer(this.simulationFramebuffer).clearColor(0, 0, 0, 0),
+            wgl.COLOR_BUFFER_BIT);
+
         var buildFieldDrawState = wgl.createDrawState()
             .bindFramebuffer(this.simulationFramebuffer)
 	//co: it seems the viewport is set to automatically fill the
 	//output texture. Note that from the shader perspective the field
 	//will be from -1 to 1 in both directions 
 	//
-	//.viewport(0, 0, this.fieldWidth, this.fieldHeight) 
+	.viewport(0, 0, this.fieldWidth, this.fieldHeight) 
 
 	//this next command designates
 	//the vertexes as an attribute into the vert shader as the
@@ -173,8 +179,6 @@ var Simulator = (function () {
             .enable(wgl.BLEND)
             .blendEquation(wgl.FUNC_ADD)
             .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE);
-	
-        wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, this.fieldTexture, 0);
 	
 	wgl.drawArrays(buildFieldDrawState, wgl.GL_POINTS, 0, 
 		       this.particleCount);
