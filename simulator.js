@@ -4,6 +4,8 @@
 //into a texture so we can alter this data and keep all the memory
 //for it within the gpu
 var Simulator = (function () {
+    var MAX_TIME_STEP = 20;
+
     function Simulator(wgl, callerOnLoaded)
     {
 	this.wgl = wgl;
@@ -231,6 +233,11 @@ var Simulator = (function () {
     {
         if (timeStep == 0.0) return;
 	
+	//if the computer paused for awhile to do something else, we
+	//don't want it causing our particles to drift too far
+	if(timeStep > MAX_TIME_STEP)
+	    timeStep = MAX_TIME_STEP;
+
         this.frameNumber += 1;
 
 	this.buildFieldTexture();

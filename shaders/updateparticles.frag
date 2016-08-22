@@ -20,8 +20,8 @@ void main() {
   vec2 force = fieldData.xy;
 
   //eventually we can multiply force by mass, but now we assume its 1
-  vec2 vel = particleData.zw + force/10000.;
-  vel.y -= 0.001; //TIMHACK gravity
+  vec2 vel = particleData.zw + force/1000.;
+  vel.y -= 0.000001*u_timeStep; //TIMHACK gravity
 
   vec2 newPos = min(u_fieldSize,max(pos + vel * u_timeStep,0.));
 
@@ -29,13 +29,15 @@ void main() {
   //we use vel, unless newPos equals exactly zero, in which we assume we have 
   //reached
   //the edge and are ready to bounce
-  vec2 newVel  = vel - (step(0., -newPos) * vel * 2.0);
+  vec2 newVel  = (vel - (step(0., -newPos) * vel * 2.0))
+    *.99999  //TIMHACK decay
+    ;
 
   //bounce off top right edge
-  vec2 newVel2  = newVel -
+  newVel  = newVel -
     (step(u_fieldSize, newPos) * newVel * 2.0);
 
-  gl_FragColor = vec4(newPos, newVel2);
+  gl_FragColor = vec4(newPos, newVel);
   /* //bounce off right bottom edge */
   /* vec2 newVel2  = -newVel.x + */
   /*   (step(, -newPos) * newVel * 2.0); */

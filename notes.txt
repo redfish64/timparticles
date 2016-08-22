@@ -43,3 +43,30 @@ velocity texture, and a random texture that uses cos/sin of angles
 from 0 - 360 degrees). So I think whether negative numbers are
 translated to the output depends on the type of output. If we use a
 signed float texture, we should be ok.
+
+---
+
+Next steps:
+
+We have a variable number of fields and particle types.
+
+Each particle type will have
+{
+  true_mass; //the mass of the particle, force / true_mass = acceleration
+  field_mass[]; //mass as relates to a field. values may be negative
+}
+
+Each field will be generated the same way for all particle types, but
+may be different in their own respects.
+
+For example, an electrical charge will repel particles together but be
+a relatively weak force. (However if some particles have negative electrical
+mass, then they will be attracted to others with positive electrical mass)
+
+A nuclear bonding force will attract particles fiercely, but will diminish
+quickly with distance.
+
+The forces will affect the momentum of the particles by dividing by their 
+true_mass.
+
+

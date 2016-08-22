@@ -13,5 +13,5 @@ void main () {
 
   //TODO 2: adjust pointsize to a specific field cutoff value
   //(using uniforms)
-  gl_PointSize = 20.0;
+  gl_PointSize = 1000.0;
 }

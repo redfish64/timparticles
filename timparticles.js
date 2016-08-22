@@ -61,6 +61,10 @@ var TimParticles = (function () {
     function resetSimulation()
     {
         var particlesWidth = 512;
+	if(this.desiredParticleCount < particlesWidth)
+	{
+	    particlesWidth = Math.pow(2,Math.ceil(Math.log(this.desiredParticleCount)/Math.log(2)));
+	}
         var particlesHeight = Math.ceil(this.desiredParticleCount / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
 
         var particleCount = particlesWidth * particlesHeight;
