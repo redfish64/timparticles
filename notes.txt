@@ -70,3 +70,55 @@ The forces will affect the momentum of the particles by dividing by their
 true_mass.
 
 
+---
+
+We should calculate the frame rate, and then use that to slow down time
+sufficiently so the points don't jump around too much.
+
+Donuts can be very small, 1 pixel in size, because we can calculate the
+velocity change before we move the particle (at one point, right at the
+particle start).
+
+We have a maximum speed for points. What about relativity? Suppose we
+increase the mass of the particle to compensate?
+
+----
+
+Relativity.... mass increases when we approach lightspeed (1 field unit per
+frame)
+
+Instead of velocity, we record "momentum". We convert it using the following
+formulas
+
+p = momentum
+v = velocity
+m0 = mass with zero momentum
+c = max speed
+y = lorentz factor
+
+y = sqrt(1 + (p/(m0*c))^2)
+v = p/(y*m0)
+m = p/v
+
+Then for a particular force f,
+p' = p + f/m
+
+
+---
+
+We will use "simulation time", in which max speed is defined. So maxSpeed
+is in the unit areaUnit per simTime. 
+
+We will never do a calculation round for a time greater than 1 "simTime" unit.
+
+We will target a particular simTime units per second. If we can
+process faster than our target, we will do calculations for less than
+1 simTime. 
+
+For example, if we target 30 simTime units per second, and we are able to
+process 60 simTime units per second, we'll lower the simTime per calcuation
+to 0.5 frames.
+
+This will be clamped by a minimum frame time, where we will instead introduce
+a delay.
+

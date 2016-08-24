@@ -1,7 +1,8 @@
 var SimulatorRenderer = (function () {
-    function SimulatorRenderer (canvas, wgl, onLoaded) {
+    function SimulatorRenderer (canvas, wgl, pTypes, onLoaded) {
         this.canvas = canvas;
         this.wgl = wgl;
+	this.pTypes = pTypes;
 
         wgl.getExtension('OES_texture_float');
         wgl.getExtension('OES_texture_float_linear');
@@ -16,7 +17,10 @@ var SimulatorRenderer = (function () {
             }
         }).bind(this));
 
-        this.simulator = new Simulator(this.wgl, (function () {
+        this.simulator = new Simulator(
+	    this.wgl, 
+	    pTypes,
+	    (function () {
             simulatorLoaded = true;
             if (rendererLoaded && simulatorLoaded) {
                 start.call(this);
@@ -39,15 +43,9 @@ var SimulatorRenderer = (function () {
     // };
 
     SimulatorRenderer.prototype.reset = 
-	function (particlePositions, 
-		  particleVelocities,
-		  particlesWidth, 
-		  particlesHeight)
+	function (params)
     {
-	this.simulator.reset(particlePositions, particleVelocities,
-			     particlesWidth,
-			     particlesHeight, 
-			     this.canvas.width, this.canvas.height);
+	this.simulator.reset(params);
         this.renderer.reset();
     }
 

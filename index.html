@@ -7,6 +7,8 @@
 
   <body>
     <div id="placeholder"></div>
+    <script src="validator.min.js"></script>
+    <script src="common.js"></script>
     <script src="wrappedgl.js"></script>
     <script src="utilities.js"></script>
     <script src="camera.js"></script>
@@ -26,13 +28,121 @@
 
 
     <script>
-      WrappedGL.checkWebGLSupportWithExtensions(
-	['ANGLE_instanced_arrays','WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
-	function () { //we have webgl
-	    document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
+    
+
+function create_sqr_field(name,max_strength, strength_at_one_unit)
+{
+    //formula is:
+    // f(x) = k/(l+x^2)
+    // s = max_strength
+    // u = strength_at_one_unit
+    //
+    // f(0) = s
+    // f(1) = u
+    //
+    // f(0) = k/l
+    // f(1) = k/(l+1)
+    // s = k/l
+    // u = k/(l+1)
+    // k = s*l
+    // u = s*l/(l+1)
+    // u*(l+1) = s*l
+    // u*l+u = s*l
+    // u*l = s*l -u
+    // u*l - s*l = -u
+    // l*(u - s) = -u
+    // l = -u / (u - s)
+    // l = u / (s - u)
+    // k = s * l
+
+    var l = strength_at_one_unit / (max_strength - strength_at_one_unit);
+    var k = l * max_strength;
+
+    return { name: name,
+	     shaderProgram: sqrForceProgram,
+	     u_l = l;
+	     u_k = k;
+	     radius_calc:
+
+	     //force_charge is the force_charge of the particle in question
+	     //returns the radius after which the force will always be
+	     //less than min_force
+	     function(force_charge, min_force) 
+	     {
+		 var eff_min_force = Math.abs(min_force / force_charge);
+
+		 // f(x) = k/(l+x^2)
+		 // f(x) * (l+x^2) = k
+		 // l+x^2 = k / f(x)
+		 // x^2 = k / f(x) - l
+		 // x = sqrt(k / f(x) - l)
+		 return Math.sqrt(k/eff_min_force - l);
+	     }
+	     uniforms: { "u_l" : l,
+			 "u_k" : k} );
+	   }
+	     
+}
+
+
+WrappedGL.checkWebGLSupportWithExtensions(
+    ['ANGLE_instanced_arrays','WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
+    function () { //we have webgl
+	document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
 
 	    //this starts the process
-	    var timBox = new TimParticles(32);
+	var timBox = new TimParticles();
+	timBox.addField(create_sqr_field_params(
+	    "electric",
+	    4,1
+	));
+	timBox.addField(create_sqr_field_params(
+	    "nuclear",
+	    15,0.5
+	));
+	timBox.addParticleType({ name: "electron",
+				 force_props: [
+				     { force_charge : -1.0 },
+				     { force_charge : 1.0 }
+				 ],
+				 mass: 0.01,
+				 particleCount: 512
+				 });
+
+	timBox.addParticleType({ name: "proton",
+				 force_props: [
+				     { force_charge : 1.0 },
+				     { force_charge : 1.0 }
+				 ],
+				 mass: 1.0,
+				 particleCount: 512
+			       });
+	timBox.addParticleType({ name: "neutron",
+				 force_props: [
+				     //note that a force_charge of zero
+				     //will prevent the particle from being
+				     //considered for the field when calculating,
+				     //thereby speeeding up the simulation
+				     { force_charge : 0.0 },
+				     { force_charge : 1.0 }
+				 ],
+				 mass: 1.0,
+				 particleCount: 512
+			       });
+
+	timBox.setParameters
+	( { fieldSize: [512,512],
+	    areaPerFieldPixel: 1,
+	    targetSimTimePerSecond: 30,
+	    maxParticleSpeedAreaUnitPerSimTime: 1,
+	    simFramesPerRenderFrame: 1
+	    minForce:  0.001 //in unit/simTime^2
+	  }
+	);
+	
+	timBox.randomizeParticles(0.1);
+
+	timBox.start();
 
         }, function (hasWebGL, unsupportedExtensions) {
             document.getElementById('placeholder').outerHTML = document.getElementById('no-support').innerHTML;

@@ -2,19 +2,93 @@
 
 var TimParticles = (function () {
 
-    //velocity is in field units per millisecond
-    var MAX_VELOCITY = 0.05;
+    this.fields = [];
+    this.pTypes = [];
 
-    function TimParticles(desiredParticleCount)
+    function TimParticles()
     {
-	this.desiredParticleCount = desiredParticleCount;
+    }
+
+    TimParticles.prototype.addField = function(fieldParams)
+    {
+	validate_data(fieldParams,
+		      {
+			  name: 'required',
+			  radius_calc: 'required',
+			  uniforms: 'required'
+		      });
+	this.fields.push(fieldParams);
+	return this;
+    }
+    
+
+    TimParticles.prototype.addParticleType = function(pType)
+    {
+	validate_data(pType,
+		      {
+			  name: 'required',
+			  force_props: 'required',
+			  mass: 'required',
+			  particleCount: 'required',
+		      }
+		      );
+	
+	pType.particlesWidth = 512;
+	pType.particlesHeight = Math.ceil(Math.pType.particles/512);
+	
+	this.pTypes.push(pType);
+	return this;
+    }
+    
+    //sets various global parameters
+    TimParticles.prototype.setParameters(params)
+    {
+	validate_data(params,
+		      {
+			  fieldSize: 'required',
+			  areaPerFieldPixel: 'required',
+			  targetSimTimePerSecond: 'required',
+			  maxParticleSpeedAreaUnitPerSimTime: 'required',
+			  simFramesPerRenderFrame: 'required'
+		      }
+		     );
+	
+	this.params = params;
+    }
+
+    //randomizes the positions and momentum of all particles
+    //setParameters, and addParticleTypes must be call for all
+    //particles
+    TimParticles.prototype.randomizeParticles = function(maxMomentum)
+    {
+	for(var i = 0; i < this.pTypes.length; i++)
+	{
+	    var pType = this.pTypes[i];
+	    pType.startingPositions = 
+		createRandomParticlePositions(pType.particleCount,
+					      this.params.fieldSize[0],
+					      this.params.fieldSize[1]);
+	    pType.startingMomentums = 
+		createRandomParticleMomentums(particleCount,
+					      maxMomentum);
+	}
+    }
+    
+    TimParticles.prototype.start = function()
+    {
+	this.params.totalParticleCount = 0;
+	for(var i = 0; i < this.pTypes.length; i++)
+	{
+	    var pType = pTypes[i];
+	    this.params.totalParticleCount += pType.particleCount;
+	}
 
 	this.canvas = document.getElementById('canvas');
 	
 	this.wgl = new WrappedGL(canvas);
 	
 	this.simulatorRenderer = new SimulatorRenderer
-	(this.canvas,this.wgl, onSimLoaded.bind(this));
+	(this.canvas,this.wgl, pTypes, onSimLoaded.bind(this));
 
     }
     
@@ -44,37 +118,23 @@ var TimParticles = (function () {
 	return particlePositions;
     }
 
-    //note, velocity may slightly exceed maxVelocity by around 30% or so
-    function createRandomParticleVelocities(particleCount,maxVelocity)
+    //note, momentum may exceed maxMomentum by around 30% or so
+    function createRandomParticleMomentums(particleCount,maxVelocity)
     {
-	var particleVelocities = [];
+	var particleMomentums = [];
 	
 	for(var p = 0; p < particleCount; p++)
 	{
-	    particleVelocities.push(randomPoint(-maxVelocity,maxVelocity));
-	    particleVelocities.push(randomPoint(-maxVelocity,maxVelocity));
+	    particleMomentums.push(randomPoint(-maxVelocity,maxVelocity));
+	    particleMomentums.push(randomPoint(-maxVelocity,maxVelocity));
 	}
 
-	return particleVelocities;
+	return particleMomentums;
     }
 
     function resetSimulation()
     {
-        var particlesWidth = 512;
-	if(this.desiredParticleCount < particlesWidth)
-	{
-	    particlesWidth = Math.pow(2,Math.ceil(Math.log(this.desiredParticleCount)/Math.log(2)));
-	}
-        var particlesHeight = Math.ceil(this.desiredParticleCount / particlesWidth); //then we calculate the particlesHeight that produces the closest particle count
-
-        var particleCount = particlesWidth * particlesHeight;
-
-	var particlePositions = createRandomParticlePositions(particleCount, canvas.width,
-							     canvas.height);
-	var particleVelocities = createRandomParticleVelocities(particleCount, MAX_VELOCITY);
-	this.simulatorRenderer.reset(particlePositions, particleVelocities, 
-				     particlesWidth,
-				     particlesHeight);
+	this.simulatorRenderer.reset(this.params);
 
     }
 
