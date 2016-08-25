@@ -2,11 +2,10 @@
 
 var TimParticles = (function () {
 
-    this.fields = [];
-    this.pTypes = [];
-
     function TimParticles()
     {
+	this.fields = [];
+	this.pTypes = [];
     }
 
     TimParticles.prototype.addField = function(fieldParams)
@@ -14,8 +13,9 @@ var TimParticles = (function () {
 	validate_data(fieldParams,
 		      {
 			  name: 'required',
-			  radius_calc: 'required',
-			  uniforms: 'required'
+			  shaderProgram: 'required',
+			  size: 'required',
+			  radiusCalc: 'required'
 		      });
 	this.fields.push(fieldParams);
 	return this;
@@ -27,32 +27,35 @@ var TimParticles = (function () {
 	validate_data(pType,
 		      {
 			  name: 'required',
-			  force_props: 'required',
+			  forceProps: 'required',
 			  mass: 'required',
-			  particleCount: 'required',
+			  size: 'required',
+			  color: 'required',
+			  particleCount: 'required'
 		      }
 		      );
 	
 	pType.particlesWidth = 512;
-	pType.particlesHeight = Math.ceil(Math.pType.particles/512);
+	pType.particlesHeight = Math.ceil(pType.particleCount/512);
 	
 	this.pTypes.push(pType);
 	return this;
     }
     
     //sets various global parameters
-    TimParticles.prototype.setParameters(params)
+    TimParticles.prototype.setParameters = function(params)
     {
 	validate_data(params,
 		      {
-			  fieldSize: 'required',
-			  areaPerFieldPixel: 'required',
+			  areaSize: 'required',
 			  targetSimTimePerSecond: 'required',
 			  maxParticleSpeedAreaUnitPerSimTime: 'required',
-			  simFramesPerRenderFrame: 'required'
+			  simFramesPerRenderFrame: 'required',
+			  minForce: 'required',
+			  maxSpeed: 'required'
 		      }
 		     );
-	
+
 	this.params = params;
     }
 
@@ -66,10 +69,10 @@ var TimParticles = (function () {
 	    var pType = this.pTypes[i];
 	    pType.startingPositions = 
 		createRandomParticlePositions(pType.particleCount,
-					      this.params.fieldSize[0],
-					      this.params.fieldSize[1]);
+					      this.params.areaSize[0],
+					      this.params.areaSize[1]);
 	    pType.startingMomentums = 
-		createRandomParticleMomentums(particleCount,
+		createRandomParticleMomentums(pType.particleCount,
 					      maxMomentum);
 	}
     }
@@ -79,16 +82,27 @@ var TimParticles = (function () {
 	this.params.totalParticleCount = 0;
 	for(var i = 0; i < this.pTypes.length; i++)
 	{
-	    var pType = pTypes[i];
+	    var pType = this.pTypes[i];
 	    this.params.totalParticleCount += pType.particleCount;
 	}
 
+	for(var i = 0; i < this.fields.length; i++)
+	{
+	    var field = this.fields[i];
+	    
+	    assert(this.params.areaSize[0]/this.params.areaSize[1] == 
+		   field.size[0]/field.size[1],
+		   "param size ratio must equal field size ratio, field "+i
+		   +" size "+field.size+", doesn't have the same ratio as "+
+		   "areaSize "+this.params.areaSize);
+	}
+	
 	this.canvas = document.getElementById('canvas');
 	
 	this.wgl = new WrappedGL(canvas);
 	
 	this.simulatorRenderer = new SimulatorRenderer
-	(this.canvas,this.wgl, pTypes, onSimLoaded.bind(this));
+	(this.canvas,this.wgl, this.fields, this.pTypes, onSimLoaded.bind(this));
 
     }
     
@@ -135,7 +149,7 @@ var TimParticles = (function () {
     function resetSimulation()
     {
 	this.simulatorRenderer.reset(this.params);
-
+	this.frame=0;
     }
 
     function onSimLoaded()
@@ -163,7 +177,20 @@ var TimParticles = (function () {
     }
 
     TimParticles.prototype.update = function (deltaTime) {
-        this.simulatorRenderer.update(deltaTime);
+	//if we can go faster than a simulation time unit,
+	//then we simulate a partial time unit,
+	//otherwise we slow time down to exactly one simulation
+	//time unit.
+	//
+	//We do this to prevent particles from jumping around
+	//into very strong fields thereby giving them too much energy
+	var simTime = 
+	    Math.min(
+		this.params.targetSimTimePerSecond*0.001*deltaTime,
+		1.);
+
+	this.frame++;
+        this.simulatorRenderer.update(this.frame,simTime);
     }
 
     

@@ -17,7 +17,10 @@
     <script src="simulatorrenderer.js"></script>
     <script src="timparticles.js"></script>
     <script type="text/template" id="main">
+    canvas start<br>
     <canvas id="canvas" width="512" height="512"></canvas>
+    <br>
+    canvas end
     </script>
 
     <script type="text/template" id="no-support">
@@ -30,12 +33,13 @@
     <script>
     
 
-function create_sqr_field(name,max_strength, strength_at_one_unit)
+function createSqrFieldParams(name,maxStrength, strengthAtOneUnit,
+			      fieldSize)
 {
     //formula is:
     // f(x) = k/(l+x^2)
-    // s = max_strength
-    // u = strength_at_one_unit
+    // s = maxStrength
+    // u = strengthAtOneUnit
     //
     // f(0) = s
     // f(1) = u
@@ -55,21 +59,22 @@ function create_sqr_field(name,max_strength, strength_at_one_unit)
     // l = u / (s - u)
     // k = s * l
 
-    var l = strength_at_one_unit / (max_strength - strength_at_one_unit);
-    var k = l * max_strength;
+    var l = strengthAtOneUnit / (maxStrength - strengthAtOneUnit);
+    var k = l * maxStrength;
 
     return { name: name,
-	     shaderProgram: sqrForceProgram,
-	     u_l = l;
-	     u_k = k;
-	     radius_calc:
+	     shaderProgram: 'sqrForceProgram',
+	     u_l: l,
+	     u_k: k,
+	     size: fieldSize,
+	     radiusCalc:
 
-	     //force_charge is the force_charge of the particle in question
+	     //forceCharge is the forceCharge of the particle in question
 	     //returns the radius after which the force will always be
 	     //less than min_force
-	     function(force_charge, min_force) 
+	     function(forceCharge, min_force) 
 	     {
-		 var eff_min_force = Math.abs(min_force / force_charge);
+		 var eff_min_force = Math.abs(min_force / forceCharge);
 
 		 // f(x) = k/(l+x^2)
 		 // f(x) * (l+x^2) = k
@@ -78,10 +83,7 @@ function create_sqr_field(name,max_strength, strength_at_one_unit)
 		 // x = sqrt(k / f(x) - l)
 		 return Math.sqrt(k/eff_min_force - l);
 	     }
-	     uniforms: { "u_l" : l,
-			 "u_k" : k} );
-	   }
-	     
+	   };
 }
 
 
@@ -92,51 +94,60 @@ WrappedGL.checkWebGLSupportWithExtensions(
 
 	    //this starts the process
 	var timBox = new TimParticles();
-	timBox.addField(create_sqr_field_params(
+	timBox.addField(createSqrFieldParams(
 	    "electric",
-	    4,1
+	    4,1, [512,512]
 	));
-	timBox.addField(create_sqr_field_params(
+	timBox.addField(createSqrFieldParams(
 	    "nuclear",
-	    15,0.5
+	    15,0.5, [512,512]
 	));
 	timBox.addParticleType({ name: "electron",
-				 force_props: [
-				     { force_charge : -1.0 },
-				     { force_charge : 1.0 }
+				 forceProps: [
+				     { forceCharge : -1.0 },
+				     { forceCharge : 1.0 }
 				 ],
 				 mass: 0.01,
+				 size: 2,
+				 color: [0.,0.,1.],
 				 particleCount: 512
 				 });
 
 	timBox.addParticleType({ name: "proton",
-				 force_props: [
-				     { force_charge : 1.0 },
-				     { force_charge : 1.0 }
+				 forceProps: [
+				     { forceCharge : 1.0 },
+				     { forceCharge : 1.0 }
 				 ],
 				 mass: 1.0,
+				 size: 10,
+				 color: [1.,0.,0.],
 				 particleCount: 512
 			       });
 	timBox.addParticleType({ name: "neutron",
-				 force_props: [
-				     //note that a force_charge of zero
+				 forceProps: [
+				     //note that a forceCharge of zero
 				     //will prevent the particle from being
 				     //considered for the field when calculating,
 				     //thereby speeeding up the simulation
-				     { force_charge : 0.0 },
-				     { force_charge : 1.0 }
+				     { forceCharge : 0.0 },
+				     { forceCharge : 1.0 }
 				 ],
 				 mass: 1.0,
+				 size: 10,
+				 color: [0.,1,0.],
 				 particleCount: 512
 			       });
 
 	timBox.setParameters
-	( { fieldSize: [512,512],
-	    areaPerFieldPixel: 1,
+	( { 
+	    areaSize: [512,512], //ratio of width/height should match ratio
+	    //of width/height of fields
 	    targetSimTimePerSecond: 30,
 	    maxParticleSpeedAreaUnitPerSimTime: 1,
-	    simFramesPerRenderFrame: 1
-	    minForce:  0.001 //in unit/simTime^2
+	    simFramesPerRenderFrame: 1,
+	    minForce:  0.001, //in unit/simTime^2
+	    maxSpeed: 1.0 //in unit/simTime
+	    
 	  }
 	);
 	

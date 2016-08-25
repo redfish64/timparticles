@@ -98,10 +98,10 @@ y = lorentz factor
 
 y = sqrt(1 + (p/(m0*c))^2)
 v = p/(y*m0)
-m = p/v
+m = y*m0
 
 Then for a particular force f,
-p' = p + f/m
+p' = p + f
 
 
 ---
