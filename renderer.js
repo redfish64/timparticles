@@ -89,6 +89,16 @@ var Renderer = (function () {
 
     }
 
+    Renderer.prototype.renderAllParticles = function () 
+    {
+	for(var j = 0; j < this.pTypes.length; j++)
+	{
+	    var pType = this.pTypes[j];
+	    
+	    this.renderParticles(pType);
+	}
+    }
+    
     Renderer.prototype.draw = function () 
     {
 	var wgl = this.wgl;
@@ -97,14 +107,11 @@ var Renderer = (function () {
             wgl.createClearState().bindFramebuffer(null).clearColor(0, 0, 0, 1),
             wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT);
 
-	//this.renderField(this.fields[0]);
-
-	for(var j = 0; j < this.pTypes.length; j++)
-	{
-	    var pType = this.pTypes[j];
-
-	    this.renderParticles(pType);
-	}
+	if(this.params.renderFirstField)
+	    this.renderField(this.fields[0]);
+	
+	if(this.params.renderParticles)
+	    this.renderAllParticles();
     }
 
     return Renderer;

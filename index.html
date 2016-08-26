@@ -32,8 +32,18 @@
 
     <script>
     
-
+//creates a field f(x) = k/(l+(x-d)^2)
+//which is basically a classic upside down u shaped function
+//the inclusion of d allows the equation to be offset, which
+//creates a sweet spot, or donut ring where particles can be glued
+//together.
+//
+//maxStrength - the maximum strength at "donutWidth"
+//strengthAtOneUnit - strength one unit away from "donutWidth"
+//donutWidth - width of the donut. This may be zero for forces
+//that simply attract or repel
 function createSqrFieldParams(name,maxStrength, strengthAtOneUnit,
+			      donutWidth,
 			      fieldSize)
 {
     //formula is:
@@ -66,9 +76,9 @@ function createSqrFieldParams(name,maxStrength, strengthAtOneUnit,
 	     shaderProgram: 'sqrForceProgram',
 	     u_l: l,
 	     u_k: k,
+	     u_d: donutWidth,
 	     size: fieldSize,
 	     radiusCalc:
-
 	     //forceCharge is the forceCharge of the particle in question
 	     //returns the radius after which the force will always be
 	     //less than min_force
@@ -76,82 +86,236 @@ function createSqrFieldParams(name,maxStrength, strengthAtOneUnit,
 	     {
 		 var eff_min_force = Math.abs(min_force / forceCharge);
 
-		 // f(x) = k/(l+x^2)
-		 // f(x) * (l+x^2) = k
-		 // l+x^2 = k / f(x)
-		 // x^2 = k / f(x) - l
-		 // x = sqrt(k / f(x) - l)
-		 return Math.sqrt(k/eff_min_force - l);
+		 // f(x) = k/(l+(x-d_^2)
+		 // f(x) * (l+(x-d)^2) = k
+		 // l+(x-d)^2 = k / f(x)
+		 // (x-d)^2 = k / f(x) - l
+		 // x - d = sqrt(k / f(x) - l)
+		 // x = sqrt(k / f(x) - l) + d
+		 return Math.sqrt(k/eff_min_force - l)+donutWidth;
 	     }
 	   };
 }
 
+function atomic_setup(timBox)
+{
+    timBox.addField(createSqrFieldParams(
+	"electric",
+	0.1,.04, 0., [128,128]
+    ));
+    // timBox.addField(createSqrFieldParams(
+    //     "nuclear",
+    //     5,1, [32,32]
+    // ));
+    timBox.addParticleType({ name: "electron",
+			     forceProps: [
+				 { forceCharge : -1.0 },
+				 { forceCharge : 1.0 }
+			     ],
+			     mass: 1,
+			     size: 2,
+			     color: [0.,0.,1.],
+			     particleCount: 16
+			   });
+
+    timBox.addParticleType({ name: "proton",
+			     forceProps: [
+				 { forceCharge : 1.0 },
+				 { forceCharge : 1.0 }
+			     ],
+			     mass: 1.0,
+			     size: 4,
+			     color: [1.,0.,0.],
+			     particleCount: 16
+			   });
+    // timBox.addParticleType({ name: "neutron",
+    // 			 forceProps: [
+    // 			     //note that a forceCharge of zero
+    // 			     //will prevent the particle from being
+    // 			     //considered for the field when calculating,
+    // 			     //thereby speeeding up the simulation
+    // 			     { forceCharge : 0.0 },
+    // 			     { forceCharge : 1.0 }
+    // 			 ],
+    // 			 mass: 1.0,
+    // 			 size: 10,
+    // 			 color: [0.,1.,0.],
+    // 			 particleCount: 512
+    // 		       });
+
+    timBox.setParameters
+    ( { 
+	areaSize: [32,32], //ratio of width/height should match ratio
+	//of width/height of fields
+	targetSimTimePerSecond: 30,
+	maxParticleSpeedAreaUnitPerSimTime: 1,
+	simFramesPerRenderFrame: 1,
+	minForce:  .02, //in unit/simTime^2
+	maxSpeed: 1.0, //in unit/simTime
+	gravity: 0.001,
+	decay: 0.0001,
+	renderFirstField: false,
+	renderParticles: true
+	
+    }
+    );
+    
+    timBox.randomizeParticles(.001);
+}
+
+
+//attempts to induce a crystaline structure by making two types of particles
+//particles of the same type repel each other, but attract opposite particle
+//types but only up to a certain distance.
+//sort of failed at that, so now its called strings
+//
+//We do this with two sqrFields, one attractive and one repellent.
+function strings_setup(timBox)
+{
+    timBox.addField(createSqrFieldParams(
+	"attract",
+	0.05,.045, 0.,[512,512]
+    ));
+    timBox.addField(createSqrFieldParams(
+        "repel",
+        0.074,.01, 0., [512,512]
+    ));
+    timBox.addParticleType({ name: "green",
+			     forceProps: [
+				 { forceCharge : -1.0 },
+				 { forceCharge : 1.0 }
+			     ],
+			     mass: 1,
+			     size: 3,
+			     color: [0.,1.,0.],
+			     particleCount: 1024
+			   });
+
+    timBox.addParticleType({ name: "white",
+			     forceProps: [
+				 { forceCharge : 1.0 },
+				 { forceCharge : 1.0 }
+			     ],
+			     mass: 1.0,
+			     size: 3,
+			     color: [1.,1.,1.],
+			     particleCount: 1024
+			   });
+    // timBox.addParticleType({ name: "neutron",
+    // 			 forceProps: [
+    // 			     //note that a forceCharge of zero
+    // 			     //will prevent the particle from being
+    // 			     //considered for the field when calculating,
+    // 			     //thereby speeeding up the simulation
+    // 			     { forceCharge : 0.0 },
+    // 			     { forceCharge : 1.0 }
+    // 			 ],
+    // 			 mass: 1.0,
+    // 			 size: 10,
+    // 			 color: [0.,1.,0.],
+    // 			 particleCount: 512
+    // 		       });
+
+    timBox.setParameters
+    ( { 
+	areaSize: [128,128], //ratio of width/height should match ratio
+	//of width/height of fields
+	targetSimTimePerSecond: 30,
+	maxParticleSpeedAreaUnitPerSimTime: 1,
+	simFramesPerRenderFrame: 1,
+	minForce:  .001, //in unit/simTime^2
+	maxSpeed: 1.0, //in unit/simTime
+	gravity: 0.0003,
+	decay: 0.01,
+	renderFirstField: true,
+	renderParticles: true
+    }
+    );
+    
+    timBox.randomizeParticles(0.000);
+}
+
+//attempt 2 to induce a crystaline structure by making two types of particles
+//particles of the same type repel each other, but attract opposite particle
+//types but only up to a certain distance.
+//
+//We do this with two sqrFields, one attractive and one repellent.
+function crystals_setup(timBox)
+{
+    timBox.addField(createSqrFieldParams(
+	"attract",
+	0.05,.045, 5.,[512,512]
+    ));
+    timBox.addField(createSqrFieldParams(
+        "repel",
+        0.074,.01, 0., [512,512]
+    ));
+    timBox.addParticleType({ name: "green",
+			     forceProps: [
+				 { forceCharge : -1.0 },
+				 { forceCharge : 1.0 }
+			     ],
+			     mass: 1,
+			     size: 3,
+			     color: [0.,1.,0.],
+			     particleCount: 1024
+			   });
+
+    timBox.addParticleType({ name: "white",
+			     forceProps: [
+				 { forceCharge : 1.0 },
+				 { forceCharge : 1.0 }
+			     ],
+			     mass: 1.0,
+			     size: 3,
+			     color: [1.,1.,1.],
+			     particleCount: 1024
+			   });
+    // timBox.addParticleType({ name: "neutron",
+    // 			 forceProps: [
+    // 			     //note that a forceCharge of zero
+    // 			     //will prevent the particle from being
+    // 			     //considered for the field when calculating,
+    // 			     //thereby speeeding up the simulation
+    // 			     { forceCharge : 0.0 },
+    // 			     { forceCharge : 1.0 }
+    // 			 ],
+    // 			 mass: 1.0,
+    // 			 size: 10,
+    // 			 color: [0.,1.,0.],
+    // 			 particleCount: 512
+    // 		       });
+
+    timBox.setParameters
+    ( { 
+	areaSize: [128,128], //ratio of width/height should match ratio
+	//of width/height of fields
+	targetSimTimePerSecond: 30,
+	maxParticleSpeedAreaUnitPerSimTime: 1,
+	simFramesPerRenderFrame: 1,
+	minForce:  .001, //in unit/simTime^2
+	maxSpeed: 1.0, //in unit/simTime
+	gravity: 0.0003,
+	decay: 0.01,
+	renderFirstField: true,
+	renderParticles: true
+    }
+    );
+    
+    timBox.randomizeParticles(0.000);
+}
 
 WrappedGL.checkWebGLSupportWithExtensions(
     ['ANGLE_instanced_arrays','WEBGL_depth_texture', 'OES_texture_float', 'OES_texture_float_linear', 'OES_texture_half_float', 'OES_texture_half_float_linear'],
     function () { //we have webgl
 	document.getElementById('placeholder').outerHTML = document.getElementById('main').innerHTML;
 
-	    //this starts the process
+	//this starts the process
 	var timBox = new TimParticles();
-	timBox.addField(createSqrFieldParams(
-	    "electric",
-	    1.1,1, [32,32]
-	));
-	timBox.addField(createSqrFieldParams(
-	    "nuclear",
-	    5,1, [32,32]
-	));
-	timBox.addParticleType({ name: "electron",
-				 forceProps: [
-				     { forceCharge : -1.0 },
-				     { forceCharge : 1.0 }
-				 ],
-				 mass: 0.1,
-				 size: 2,
-				 color: [0.,0.,1.],
-				 particleCount: 32
-				 });
-
-	timBox.addParticleType({ name: "proton",
-				 forceProps: [
-				     { forceCharge : 1.0 },
-				     { forceCharge : 1.0 }
-				 ],
-				 mass: 1.0,
-				 size: 4,
-				 color: [1.,0.,0.],
-				 particleCount: 32
-			       });
-	// timBox.addParticleType({ name: "neutron",
-	// 			 forceProps: [
-	// 			     //note that a forceCharge of zero
-	// 			     //will prevent the particle from being
-	// 			     //considered for the field when calculating,
-	// 			     //thereby speeeding up the simulation
-	// 			     { forceCharge : 0.0 },
-	// 			     { forceCharge : 1.0 }
-	// 			 ],
-	// 			 mass: 1.0,
-	// 			 size: 10,
-	// 			 color: [0.,1.,0.],
-	// 			 particleCount: 512
-	// 		       });
-
-	timBox.setParameters
-	( { 
-	    areaSize: [32,32], //ratio of width/height should match ratio
-	    //of width/height of fields
-	    targetSimTimePerSecond: 30,
-	    maxParticleSpeedAreaUnitPerSimTime: 1,
-	    simFramesPerRenderFrame: 1,
-	    minForce:  .02, //in unit/simTime^2
-	    maxSpeed: 1.0 //in unit/simTime
-	    
-	  }
-	);
 	
-	timBox.randomizeParticles(.001);
+	//atomic_setup(timBox);
+	//strings_setup(timBox);
+	crystals_setup(timBox);
 
 	timBox.start();
 

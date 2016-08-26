@@ -10,12 +10,14 @@ function assert(condition, message) {
     }
 }
 
-function validate_data(template,value)
+function validate_data(value,template)
 {
-    var v = new Validator(template,value);
+    var v = new Validator(value,template);
 
     if(v.fails())
     {
-	assert(false, "fails validation: "+value+", got "+v.errors.all())
+	assert(false, "fails validation: "+JSON.stringify(value,null,4)+
+	       " for "+JSON.stringify(template,null,4)
+	       +", got "+JSON.stringify(v.errors.all(),null,4));
     }
 }

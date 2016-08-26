@@ -230,13 +230,16 @@ var Simulator = (function () {
 		    continue;
 		}
 		
-		//PERF save this stuff off somewhere, so we don't need to 
-		//calculate it every frame?
-		var pointSize = field.radiusCalc(forceCharge, 
-						 this.params.minForce);
-
 		var areaPerFieldPixel = this.params.areaSize[0]/field.size[0];
 		
+		//PERF save this stuff off somewhere, so we don't need to 
+		//calculate it every frame?
+		//
+		//pointSize is in force field units, because
+		//we are writing to a force field
+		var pointSize = field.radiusCalc(forceCharge, 
+						 this.params.minForce)/areaPerFieldPixel;
+
 		var drawState = wgl.createDrawState()
 		    .bindFramebuffer(this.simulationFramebuffer)
 		    .viewport(0, 0, field.size[0], 
@@ -254,6 +257,7 @@ var Simulator = (function () {
 		    .uniform1f('u_pointSize2', pointSize)
 		    .uniform1f('u_l', field.u_l)
 		    .uniform1f('u_k', field.u_k)
+		    .uniform1f('u_d', field.u_d)
 		    .uniform1f('u_forceCharge', forceCharge)
 		    .uniform1f('u_areaPerFieldPixel', areaPerFieldPixel)
 		    .uniformTexture('u_particleTexture', 0, wgl.TEXTURE_2D, 
@@ -348,6 +352,8 @@ var Simulator = (function () {
 		.uniform1f('u_timeStep', timeStep)
 		.uniform1f('u_maxSpeed', this.params.maxSpeed)
 		.uniform1f('u_mass0', pType.mass)
+		.uniform1f('u_decay', this.params.decay)
+		.uniform1f('u_gravity', this.params.gravity)
 		.uniform2f('u_areaSize', this.params.areaSize[0],
 			  this.params.areaSize[1])
 	    ;

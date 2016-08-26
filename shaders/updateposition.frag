@@ -14,6 +14,9 @@ uniform float u_maxSpeed;
 
 uniform vec2 u_areaSize;
 
+uniform float u_gravity; //in area units per sim time squared
+uniform float u_decay; //absolute decay as a percentage per sim time
+
 void main() {
   //position is xy, velocity is zw
   //v_coordinates goes from 0 to 1 in x and y.
@@ -31,8 +34,8 @@ void main() {
   
   float mass = u_mass0 * lorentz;
 
-  momentum = momentum * (1. - 0.06 * u_timeStep); //TIMHACK decay
-  momentum = momentum + vec2(0,-0.01)*mass;
+  momentum = momentum * (1. - u_decay * u_timeStep);
+  momentum = momentum + vec2(0,-u_gravity)*mass; 
 
   vec2 vel = momentum/(lorentz * u_mass0);
   pos = pos + vel * u_timeStep;
