@@ -96,21 +96,21 @@ WrappedGL.checkWebGLSupportWithExtensions(
 	var timBox = new TimParticles();
 	timBox.addField(createSqrFieldParams(
 	    "electric",
-	    4,1, [512,512]
+	    1.1,1, [32,32]
 	));
 	timBox.addField(createSqrFieldParams(
 	    "nuclear",
-	    15,0.5, [512,512]
+	    5,1, [32,32]
 	));
 	timBox.addParticleType({ name: "electron",
 				 forceProps: [
 				     { forceCharge : -1.0 },
 				     { forceCharge : 1.0 }
 				 ],
-				 mass: 0.01,
+				 mass: 0.1,
 				 size: 2,
 				 color: [0.,0.,1.],
-				 particleCount: 512
+				 particleCount: 32
 				 });
 
 	timBox.addParticleType({ name: "proton",
@@ -119,39 +119,39 @@ WrappedGL.checkWebGLSupportWithExtensions(
 				     { forceCharge : 1.0 }
 				 ],
 				 mass: 1.0,
-				 size: 10,
+				 size: 4,
 				 color: [1.,0.,0.],
-				 particleCount: 512
+				 particleCount: 32
 			       });
-	timBox.addParticleType({ name: "neutron",
-				 forceProps: [
-				     //note that a forceCharge of zero
-				     //will prevent the particle from being
-				     //considered for the field when calculating,
-				     //thereby speeeding up the simulation
-				     { forceCharge : 0.0 },
-				     { forceCharge : 1.0 }
-				 ],
-				 mass: 1.0,
-				 size: 10,
-				 color: [0.,1,0.],
-				 particleCount: 512
-			       });
+	// timBox.addParticleType({ name: "neutron",
+	// 			 forceProps: [
+	// 			     //note that a forceCharge of zero
+	// 			     //will prevent the particle from being
+	// 			     //considered for the field when calculating,
+	// 			     //thereby speeeding up the simulation
+	// 			     { forceCharge : 0.0 },
+	// 			     { forceCharge : 1.0 }
+	// 			 ],
+	// 			 mass: 1.0,
+	// 			 size: 10,
+	// 			 color: [0.,1.,0.],
+	// 			 particleCount: 512
+	// 		       });
 
 	timBox.setParameters
 	( { 
-	    areaSize: [512,512], //ratio of width/height should match ratio
+	    areaSize: [32,32], //ratio of width/height should match ratio
 	    //of width/height of fields
 	    targetSimTimePerSecond: 30,
 	    maxParticleSpeedAreaUnitPerSimTime: 1,
 	    simFramesPerRenderFrame: 1,
-	    minForce:  0.001, //in unit/simTime^2
+	    minForce:  .02, //in unit/simTime^2
 	    maxSpeed: 1.0 //in unit/simTime
 	    
 	  }
 	);
 	
-	timBox.randomizeParticles(0.1);
+	timBox.randomizeParticles(.001);
 
 	timBox.start();
 

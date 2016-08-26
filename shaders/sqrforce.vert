@@ -12,6 +12,9 @@ void main () {
 
   //particle position is in area units, so we divide by area size to
   //get the -1 to 1 range for mapping the full field used by the frag shader
-  gl_Position = vec4((particleData.xy/u_areaSize - 0.5) * 2.0,0.,1.);
+  gl_Position = //vec4(0.,0.,0.,1.) //TIMHACK
+    vec4((particleData.xy/u_areaSize - 0.5) * 2.0,0.,1.)
+    ;
+
   gl_PointSize = u_pointSize;
 }

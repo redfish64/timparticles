@@ -4,18 +4,19 @@ uniform float u_l;
 uniform float u_k;
 uniform float u_forceCharge;
 uniform float u_areaPerFieldPixel;
+uniform float u_pointSize2;
 
-//this is hardcoded at a distance of 1, so that the particle won't be
+//this is hardcoded at a distance of 1.5, so that the particle won't be
 //affected by its own field. It is in field units (and must be converted
 // to area units
-const float MIN_DIST_PERC = 1.;
-const float MIN_DIST_PERC_SQR = 1.;
+const float MIN_DIST_PERC = 1.5;
+const float MIN_DIST_PERC_SQR = 2.25;
 
 void main () {
   //gl_PointCoord goes from 0 to 1 in x and y and is in the output texture,
   //which is the field texture units. Since we want the force to be
   //in area units, we need to multiply by u_areaPerFieldPixel
-  vec2 dist = (gl_PointCoord.xy - 0.5)*2. * u_areaPerFieldPixel;
+  vec2 dist = (gl_PointCoord.xy - 0.5)*2. * u_pointSize2 * u_areaPerFieldPixel;
   float dist_sqr = dot(dist,dist);
   float dist_sqr_mod = max(dist_sqr, MIN_DIST_PERC_SQR);
 
@@ -29,11 +30,13 @@ void main () {
     //care of.
     //we want the hole the size of one field unit, so we multiply
     //by the appropriate factor
-    * step(MIN_DIST_PERC_SQR*u_areaPerFieldPixel, dist_sqr);
+    * step(MIN_DIST_PERC_SQR*u_areaPerFieldPixel, dist_sqr)
+    ;
 
   //TODO 4: not sure why, but one axis is backwards???
   dist.y = -dist.y;
 
   //PERF can we get away without using sqrt?
   gl_FragColor = vec4(dist/sqrt(dist_sqr_mod)*force,0.,1.);
+  //gl_FragColor = vec4(1.,1.,0.,1.);
 }

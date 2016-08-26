@@ -31,6 +31,9 @@ void main() {
   
   float mass = u_mass0 * lorentz;
 
+  momentum = momentum * (1. - 0.06 * u_timeStep); //TIMHACK decay
+  momentum = momentum + vec2(0,-0.01)*mass;
+
   vec2 vel = momentum/(lorentz * u_mass0);
   pos = pos + vel * u_timeStep;
 

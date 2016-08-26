@@ -4,10 +4,11 @@
 var Renderer = (function () {
     
     //you need to call reset() before drawing
-    function Renderer (canvas, wgl, pTypes, onLoaded) {
+    function Renderer (canvas, wgl, fields, pTypes, onLoaded) {
 
         this.canvas = canvas;
         this.wgl = wgl;
+	this.fields = fields;
 	this.pTypes = pTypes;
 	
         this.quadVertexBuffer = wgl.createBuffer();
@@ -20,11 +21,11 @@ var Renderer = (function () {
 	    ]), wgl.STATIC_DRAW);
 
         wgl.createProgramsFromFiles({
-            // renderFieldProgram: {
-            //     vertexShader: 'shaders/fullscreen.vert',
-            //     fragmentShader: 'shaders/renderfield.frag',
-            //     attributeLocations: { 'a_position': 0}
-            // },
+            renderFieldProgram: {
+                vertexShader: 'shaders/renderfield.vert',
+                fragmentShader: 'shaders/renderfield.frag',
+                attributeLocations: { 'a_position': 0}
+            },
             renderParticlesProgram: {
                 vertexShader: 'shaders/renderparticles.vert',
                 fragmentShader: 'shaders/renderparticles.frag',
@@ -71,6 +72,23 @@ var Renderer = (function () {
 		       pType.particleCount);
     }
 
+    Renderer.prototype.renderField = function(field)
+    {
+        var wgl = this.wgl;
+
+	//console.log("drawing %d!", time);
+        var drawState = wgl.createDrawState()
+            .bindFramebuffer(null)
+            .viewport(0, 0, this.canvas.width, this.canvas.height)
+            .useProgram(this.renderFieldProgram)
+
+            .vertexAttribPointer(this.quadVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
+            .uniformTexture('u_fieldTexture', 0, wgl.TEXTURE_2D, field.texture);
+
+        wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
+
+    }
+
     Renderer.prototype.draw = function () 
     {
 	var wgl = this.wgl;
@@ -78,6 +96,8 @@ var Renderer = (function () {
         wgl.clear(
             wgl.createClearState().bindFramebuffer(null).clearColor(0, 0, 0, 1),
             wgl.COLOR_BUFFER_BIT | wgl.DEPTH_BUFFER_BIT);
+
+	//this.renderField(this.fields[0]);
 
 	for(var j = 0; j < this.pTypes.length; j++)
 	{

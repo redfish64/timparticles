@@ -11,7 +11,7 @@ var SimulatorRenderer = (function () {
             simulatorLoaded = false;
 
         this.renderer = new Renderer
-	(this.canvas, this.wgl, pTypes, 
+	(this.canvas, this.wgl, fields, pTypes, 
 	 (function () {
 	     rendererLoaded = true;  
 	     if (rendererLoaded && simulatorLoaded) {

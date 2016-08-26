@@ -108,12 +108,19 @@ var Simulator = (function () {
         this.wgl.bufferData(pType.particleVertexBuffer, this.wgl.ARRAY_BUFFER, particleTextureCoordinates, this.wgl.STATIC_DRAW);
     }
 
-    function createParticleData(positions, momentums)
+    function createParticleData(pType)
     {
+	//we may want to have less particles than a power of 2 but we
+	//still need to create an array to fill out the entire texture
+	var totalTextureCount = pType.particlesHeight * pType.particlesWidth;
+
+	var positions = pType.startingPositions;
+	var momentums = pType.startingMomentums;
+
 	// texture data is in a rgba format. So we create an array
-	// of floats to handle this.
+	// of 4 floats per item to handle this.
         var out = 
-            new Float32Array(positions.length * 2);
+            new Float32Array(totalTextureCount * 4);
 
         for (var i = 0; i < positions.length/2; i++) {
             out[i*4] = positions[i*2];
@@ -141,10 +148,7 @@ var Simulator = (function () {
 	for(var i = 0; i < this.pTypes.length; i++)
 	{
 	    var pType = this.pTypes[i];
-            var particlesData = createParticleData(
-		pType.startingPositions,
-		pType.startingMomentums
-	    );
+            var particlesData = createParticleData(pType);
 	    
 	    //Create the particle texture for all particle types and populate
 	    //it with starting values
@@ -229,7 +233,7 @@ var Simulator = (function () {
 		//PERF save this stuff off somewhere, so we don't need to 
 		//calculate it every frame?
 		var pointSize = field.radiusCalc(forceCharge, 
-						 this.params.minForce) *2;
+						 this.params.minForce);
 
 		var areaPerFieldPixel = this.params.areaSize[0]/field.size[0];
 		
@@ -244,8 +248,10 @@ var Simulator = (function () {
 		    .vertexAttribPointer(pType.particleVertexBuffer, 0, 2, wgl.FLOAT, wgl.FALSE, 0, 0)
 
 		    .useProgram(this[field.shaderProgram])
-		    .uniform2f('u_fieldSize', field.size[0], field.size[1])
+		    .uniform2f('u_areaSize', this.params.areaSize[0],
+			       this.params.areaSize[1])
 		    .uniform1f('u_pointSize', pointSize)
+		    .uniform1f('u_pointSize2', pointSize)
 		    .uniform1f('u_l', field.u_l)
 		    .uniform1f('u_k', field.u_k)
 		    .uniform1f('u_forceCharge', forceCharge)
@@ -254,8 +260,8 @@ var Simulator = (function () {
 				    pType.particleTexture)
 		    .enable(wgl.BLEND)
 		    .blendEquation(wgl.FUNC_ADD)
-		    .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE);
-		
+		    .blendFuncSeparate(wgl.ONE, wgl.ONE, wgl.ONE, wgl.ONE)
+		;
 		wgl.drawArrays(drawState, wgl.POINTS, 0, 
 			       pType.particleCount);
 			       
@@ -271,8 +277,6 @@ var Simulator = (function () {
 	for(var j = 0; j < this.pTypes.length; j++)
 	{
 	    var pType = this.pTypes[j];
-            wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, pType.particleTextureTemp, 0);
-
 	    //co: we shouldn't have to clear it, I think????	
             // wgl.clear(
             //     wgl.createClearState().bindFramebuffer(this.simulationFramebuffer).clearColor(0, 0, 0, 0),
@@ -280,6 +284,10 @@ var Simulator = (function () {
 	
 	    for(var i = 0; i < this.fields.length; i++)
 	    {
+		//rebind to the temp particle texture (which is swapped by
+		//every field)
+		wgl.framebufferTexture2D(this.simulationFramebuffer, wgl.FRAMEBUFFER, wgl.COLOR_ATTACHMENT0, wgl.TEXTURE_2D, pType.particleTextureTemp, 0);
+
 		var field = this.fields[i];
 		
 		var forceCharge = pType.forceProps[i].forceCharge;
@@ -303,6 +311,8 @@ var Simulator = (function () {
 		    .uniform1f('u_timeStep', timeStep)
 		    .uniform1f('u_forceCharge', forceCharge)
 		    .uniform2f('u_fieldSize', field.size[0],field.size[1])
+		    .uniform2f('u_areaSize', this.params.areaSize[0],
+			       this.params.areaSize[1])
 		;
 		
 		wgl.drawArrays(drawState, wgl.TRIANGLE_STRIP, 0, 4);
